@@ -9,172 +9,150 @@ from datetime import datetime
 
 st.set_page_config(page_title="Invoice Generator Pro", page_icon="🧾", layout="wide")
 
+# --- INISIALISASI MEMORI (SESSION STATE) ---
+if 'items' not in st.session_state:
+    st.session_state.items = [{"desc": "", "price": 0, "qty": 1}]
+
+def add_item():
+    st.session_state.items.append({"desc": "", "price": 0, "qty": 1})
+
+def delete_item(index):
+    if len(st.session_state.items) > 1:
+        st.session_state.items.pop(index)
+
 st.title("🚀 Invoice Generator Pro")
-st.markdown("Fitur Baru: **Pajak Opsional (Editable)**")
+st.markdown("Fitur: **Multi-Item & Kalkulator Otomatis**")
 
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("🖼️ Branding")
-    uploaded_logo = st.file_uploader("Logo Perusahaan", type=["png", "jpg", "jpeg"])
+    uploaded_logo = st.file_uploader("Logo", type=["png", "jpg", "jpeg"])
     st.divider()
-    st.header("👤 Identitas Anda")
-    my_name = st.text_input("Nama Bisnis / Anda", value="CV. MAJU JAYA")
-    my_type = st.selectbox("Tipe Pengirim", ["Perusahaan", "Perorangan"])
-    my_email = st.text_input("Email Bisnis", value="kontak@majusaja.com")
-    my_phone = st.text_input("No. WhatsApp", value="08123456789")
-    my_address = st.text_area("Alamat Bisnis", value="Jl. Utama No. 1, Jakarta")
+    my_name = st.text_input("Nama Anda/Bisnis", value="CV. MAJU JAYA")
+    my_email = st.text_input("Email", value="kontak@majusaja.com")
+    my_phone = st.text_input("WhatsApp", value="08123456789")
+    my_address = st.text_area("Alamat", value="Jl. Utama No. 1, Jakarta")
 
 # --- MAIN LAYOUT ---
-col_input, col_preview = st.columns([1.2, 1])
+col_input, col_preview = st.columns([1.5, 1])
 
 with col_input:
     st.subheader("🏢 Data Penerima")
     r1_1, r1_2 = st.columns([2, 1])
-    with r1_1: client_name = st.text_input("Nama Klien", placeholder="Contoh: PT. Maju Terus")
-    with r1_2: client_type = st.selectbox("Tipe Penerima", ["Perusahaan", "Perorangan"])
+    client_name = r1_1.text_input("Nama Klien")
+    client_type = r1_2.selectbox("Tipe", ["Perusahaan", "Perorangan"])
     
     r2_1, r2_2 = st.columns(2)
-    with r2_1: client_email = st.text_input("Email Klien")
-    with r2_2: client_phone = st.text_input("No. Telp Klien")
-    client_address = st.text_area("Alamat Lengkap Klien")
+    client_email = r2_1.text_input("Email Klien")
+    client_phone = r2_2.text_input("Telp Klien")
+    client_address = st.text_area("Alamat Klien")
     
     st.divider()
-    st.subheader("💰 Detail Tagihan & Pajak")
-    r3_1, r3_2 = st.columns(2)
-    with r3_1: inv_num = st.text_input("No. Invoice", value=datetime.now().strftime('%Y%m%d%H'))
-    with r3_2: due_date = st.date_input("Jatuh Tempo")
-
-    item_desc = st.text_area("Deskripsi Pekerjaan")
-
-    # Baris Kalkulasi
-    r4_1, r4_2 = st.columns(2)
-    with r4_1:
-        unit_price = st.number_input("Harga Satuan (Rp)", min_value=0, step=10000, format="%d")
-    with r4_2:
-        qty = st.number_input("Jumlah (Qty)", min_value=1, step=1)
+    st.subheader("💰 Detail Barang / Jasa")
     
-    subtotal = unit_price * qty
-    
-    # BAGIAN PAJAK OPSIONAL
-    use_tax = st.checkbox("Tambahkan Pajak (PPN/PPh)", value=False)
-    tax_amount = 0
+    # --- INPUT MULTI ITEM ---
+    grand_subtotal = 0
+    for i, item in enumerate(st.session_state.items):
+        with st.container(border=True):
+            c1, c2, c3, c4, c5 = st.columns([3, 2, 1, 2, 0.5])
+            
+            st.session_state.items[i]['desc'] = c1.text_input(f"Deskripsi #{i+1}", value=item['desc'], key=f"desc_{i}")
+            st.session_state.items[i]['price'] = c2.number_input(f"Harga Satuan", value=item['price'], min_value=0, step=1000, key=f"price_{i}")
+            st.session_state.items[i]['qty'] = c3.number_input(f"Qty", value=item['qty'], min_value=1, key=f"qty_{i}")
+            
+            row_total = st.session_state.items[i]['price'] * st.session_state.items[i]['qty']
+            grand_subtotal += row_total
+            
+            c4.markdown(f"**Total Item:** \nRp {row_total:,.0f}")
+            if c5.button("🗑️", key=f"del_{i}"):
+                delete_item(i)
+                st.rerun()
+
+    st.button("➕ Tambah Barang/Jasa", on_click=add_item)
+
+    # --- HITUNG PAJAK ---
+    st.divider()
+    use_tax = st.checkbox("Tambahkan Pajak (PPN)")
+    tax_amt = 0
     tax_rate = 0
     if use_tax:
-        tax_rate = st.number_input("Persentase Pajak (%)", min_value=0.0, max_value=100.0, value=11.0, step=0.1)
-        tax_amount = (tax_rate / 100) * subtotal
+        tax_rate = st.number_input("PPN (%)", value=11.0)
+        tax_amt = (tax_rate/100) * grand_subtotal
     
-    total_final = subtotal + tax_amount
-    
-    st.info(f"Subtotal: Rp {subtotal:,.0f} | Pajak: Rp {tax_amount:,.0f} | **Total Akhir: Rp {total_final:,.0f}**")
+    total_akhir = grand_subtotal + tax_amt
+    st.success(f"### Grand Total: Rp {total_akhir:,.0f}")
+    notes = st.text_area("Catatan Pembayaran", value=f"Transfer BCA 123456789 A/N {my_name}")
 
-    notes = st.text_area("Catatan Pembayaran", value=f"Transfer Bank BCA\n123456789\nA/N {my_name}")
-
-def create_pdf(logo_file, inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_phone, p_addr, item, price, qty, sub, t_rate, t_amt, total, note):
+def create_pdf(logo, name, email, phone, addr, c_name, c_email, c_phone, c_addr, items, sub, t_rate, t_amt, total, note):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
+    w, h = A4
     
-    # Watermark ORIGINAL
-    c.saveState()
-    c.setFont("Helvetica-Bold", 80); c.setFillColor(HexColor("#f0f0f0"), alpha=0.3)
-    c.translate(width/2, height/2); c.rotate(45); c.drawCentredString(0, 0, "ORIGINAL"); c.restoreState()
-    
-    # Header Biru
-    c.setFillColor(HexColor("#1f538d")); c.rect(0, height - 120, width, 120, fill=True, stroke=False)
-    if logo_file:
-        img = ImageReader(logo_file)
-        c.drawImage(img, width - 150, height - 90, width=100, height=60, preserveAspectRatio=True, mask='auto')
+    # Header & Logo
+    c.setFillColor(HexColor("#1f538d")); c.rect(0, h-100, w, 100, fill=True)
+    if logo:
+        img = ImageReader(logo)
+        c.drawImage(img, w-140, h-80, width=80, height=60, preserveAspectRatio=True, mask='auto')
     
     c.setFillColor(HexColor("#ffffff"))
-    c.setFont("Helvetica-Bold", 28); c.drawString(50, height - 70, "INVOICE")
-    c.setFont("Helvetica", 9)
-    c.drawRightString(width - 50, height - 75, f"Telp: {s_phone}")
-    c.drawRightString(width - 50, height - 88, s_email)
+    c.setFont("Helvetica-Bold", 24); c.drawString(50, h-60, "INVOICE")
     
     # Client Info
     c.setFillColor(HexColor("#000000"))
-    c.setFont("Helvetica-Bold", 10); c.drawString(50, height - 150, "DITAGIHKAN KEPADA:")
-    c.setFont("Helvetica-Bold", 12); c.drawString(50, height - 168, p_name.upper() if p_name else "NAMA PENERIMA")
+    c.setFont("Helvetica-Bold", 10); c.drawString(50, h-130, "KEPADA:")
+    c.setFont("Helvetica", 10); c.drawString(50, h-145, c_name)
+    c.setFont("Helvetica", 8); c.drawString(50, h-155, f"{c_email} | {c_phone}")
     
-    c.setFont("Helvetica", 9); y_ptr = height - 182
-    c.drawString(50, y_ptr, f"Email: {p_email} | Telp: {p_phone}"); y_ptr -= 12
-    for line in textwrap.wrap(p_addr, width=50):
-        c.drawString(50, y_ptr, line); y_ptr -= 12
+    # Alamat Client (Wrap)
+    y_ptr = h-165
+    for line in textwrap.wrap(c_addr, width=50):
+        c.drawString(50, y_ptr, line); y_ptr -= 10
 
-    # Info Inv
+    # TABEL BARANG
+    y_table = y_ptr - 30
     c.setFont("Helvetica-Bold", 9)
-    c.drawRightString(width - 50, height - 150, f"No. Invoice: #{inv_num}")
-    c.drawRightString(width - 50, height - 165, f"Tempo: {due_date}")
-
-    # Tabel Detail
-    c.setStrokeColor(HexColor("#dddddd")); c.line(50, height - 260, width - 50, height - 260)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(50, height - 275, "DESKRIPSI"); c.drawString(300, height - 275, "QTY"); c.drawString(380, height - 275, "HARGA"); c.drawRightString(width - 50, height - 275, "TOTAL")
+    c.drawString(50, y_table, "DESKRIPSI"); c.drawString(300, y_table, "QTY"); c.drawString(370, y_table, "HARGA"); c.drawRightString(w-50, y_table, "TOTAL")
+    c.line(50, y_table-5, w-50, y_table-5)
     
-    c.setFont("Helvetica", 10); y_item = height - 295
-    for line in textwrap.wrap(item if item else "-", width=40):
-        c.drawString(50, y_item, line); y_item -= 12
-    
-    c.drawString(300, height - 295, str(qty))
-    c.drawString(380, height - 295, f"{price:,.0f}")
-    c.drawRightString(width - 50, height - 295, f"{sub:,.2f}")
-
-    # Summary Kalkulasi (Subtotal, Pajak, Total)
-    y_sum = y_item - 40
-    c.setFont("Helvetica", 10)
-    c.drawRightString(width - 150, y_sum, "Subtotal:")
-    c.drawRightString(width - 50, y_sum, f"Rp {sub:,.2f}")
-    
+    y_ptr = y_table - 20
+    c.setFont("Helvetica", 9)
+    for item in items:
+        # Wrap deskripsi per item
+        lines = textwrap.wrap(item['desc'], width=40)
+        start_y = y_ptr
+        for line in lines:
+            c.drawString(50, y_ptr, line); y_ptr -= 12
+        
+        c.drawString(300, start_y, str(item['qty']))
+        c.drawString(370, start_y, f"{item['price']:,.0f}")
+        c.drawRightString(w-50, start_y, f"{(item['price']*item['qty']):,.0f}")
+        y_ptr -= 5 # spasi antar item
+        
+    # TOTALS
+    y_ptr -= 20
+    c.line(w-200, y_ptr, w-50, y_ptr)
+    c.drawRightString(w-120, y_ptr-15, "Subtotal:")
+    c.drawRightString(w-50, y_ptr-15, f"Rp {sub:,.0f}")
     if t_amt > 0:
-        y_sum -= 15
-        c.drawRightString(width - 150, y_sum, f"Pajak ({t_rate}%):")
-        c.drawRightString(width - 50, y_sum, f"Rp {t_amt:,.2f}")
+        y_ptr -= 15
+        c.drawRightString(w-120, y_ptr-15, f"Pajak {t_rate}%:")
+        c.drawRightString(w-50, y_ptr-15, f"Rp {t_amt:,.0f}")
+    
+    y_ptr -= 35
+    c.setFillColor(HexColor("#f4f4f4")); c.rect(w-210, y_ptr, 160, 25, fill=True, stroke=False)
+    c.setFillColor(HexColor("#000000")); c.setFont("Helvetica-Bold", 11)
+    c.drawRightString(w-60, y_ptr+8, f"TOTAL: Rp {total:,.0f}")
 
-    # Total Box
-    y_sum -= 35
-    c.setFillColor(HexColor("#f4f4f4")); c.rect(width - 250, y_sum - 10, 200, 35, fill=True, stroke=False)
-    c.setFillColor(HexColor("#000000")); c.setFont("Helvetica-Bold", 12)
-    c.drawRightString(width - 65, y_sum, f"TOTAL AKHIR: Rp {total:,.2f}")
-    
-    # Footer
-    y_footer = y_sum - 60
-    c.setFont("Helvetica-Bold", 9); c.drawString(50, y_footer, "Catatan Pembayaran:")
-    c.setFont("Helvetica", 9); y_footer -= 15
-    for line in note.split('\n'):
-        c.drawString(50, y_footer, line); y_footer -= 12
-    c.setFont("Helvetica-Oblique", 8); c.setFillColor(HexColor("#666666"))
-    c.drawString(50, y_footer - 15, f"Diterbitkan otomatis oleh {s_name}")
-    
     c.save(); buffer.seek(0)
     return buffer
 
 with col_preview:
     st.subheader("👀 Preview")
-    with st.container(border=True):
-        st.markdown(f"""
-        <div style="background-color:#1f538d; padding:15px; color:white; border-radius:5px 5px 0 0;">
-            <h2 style="margin:0;">INVOICE</h2>
-            <p style="text-align:right; margin:0; font-size:12px;">{my_name}</p>
-        </div>
-        <div style="padding:15px; background-color:white; color:black; border:1px solid #ddd; font-family:sans-serif;">
-            <p style="font-size:10px; color:gray; margin:0;">DITAGIHKAN KEPADA:</p>
-            <h4 style="margin:0;">{client_name if client_name else 'NAMA PENERIMA'}</h4>
-            <hr>
-            <table style="width:100%; font-size:12px;">
-                <tr><td><b>Item</b></td><td><b>Qty</b></td><td style="text-align:right;"><b>Total</b></td></tr>
-                <tr><td>{item_desc if item_desc else '-'}</td><td>{qty}</td><td style="text-align:right;">Rp {sub:,.0f}</td></tr>
-            </table>
-            <hr>
-            <p style="text-align:right; font-size:12px; margin:0;">Subtotal: Rp {sub:,.0f}</p>
-            <p style="text-align:right; font-size:12px; margin:0; color:red;">Pajak ({tax_rate}%): Rp {tax_amount:,.0f}</p>
-            <div style="background-color:#f4f4f4; padding:10px; margin-top:10px; text-align:right;">
-                <h3 style="margin:0;">Total: Rp {total_final:,.0f}</h3>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("🚀 Cetak Sekarang", type="primary", use_container_width=True):
-            pdf_data = create_pdf(uploaded_logo, inv_num, my_name, my_email, my_phone, my_address, 
-                                  client_name, client_email, client_phone, client_address, 
-                                  item_desc, unit_price, qty, subtotal, tax_rate, tax_amount, total_final, notes)
-            st.download_button(label="⬇️ Download PDF", data=pdf_data, file_name=f"INV_{client_name}.pdf", mime="application/pdf", use_container_width=True)
+    # Preview sederhana UI
+    st.info(f"Penerima: {client_name}\n\nTotal Item: {len(st.session_state.items)}")
+    for item in st.session_state.items:
+        if item['desc']: st.write(f"- {item['desc']} (x{item['qty']})")
+    
+    if st.button("🚀 Cetak PDF", type="primary", use_container_width=True):
+        pdf = create_pdf(uploaded_logo, my_name, my_email, my_phone, my_address, client_name, client_email, client_phone, client_address, st.session_state.items, grand_subtotal, tax_rate, tax_amt, total_akhir, notes)
+        st.download_button("⬇️ Download Invoice", data=pdf, file_name=f"Invoice_{client_name}.pdf")
