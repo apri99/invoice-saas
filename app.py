@@ -6,7 +6,7 @@ from reportlab.lib.pagesizes import A4
 st.set_page_config(page_title="Invoice Pro v4.1", layout="wide")
 
 # --- INISIALISASI DENGAN NAMA BARU (daftar_barang) ---
-# Menggunakan nama unik agar tidak bentrok dengan method sistem
+# Menggunakan nama unik agar tidak bentrok dengan method sistem .items()
 if 'daftar_barang' not in st.session_state:
     st.session_state['daftar_barang'] = [{"nama": "", "harga": 0, "qty": 1}]
 
@@ -16,6 +16,7 @@ with st.sidebar:
     st.header("👤 Pengirim")
     my_name = st.text_input("Nama Bisnis", value="CV. MAJU JAYA")
     if st.button("🚨 Reset Aplikasi / Clear Error"):
+        st.session_state.clear()
         st.session_state['daftar_barang'] = [{"nama": "", "harga": 0, "qty": 1}]
         st.rerun()
 
@@ -26,7 +27,7 @@ with col1:
     st.subheader("💰 Detail Tagihan")
     
     total_tagihan = 0
-    # Menggunakan akses dictionary yang aman
+    # Mengambil data dari session state
     current_list = st.session_state['daftar_barang']
     
     for i in range(len(current_list)):
@@ -62,8 +63,10 @@ with col2:
     if st.button("🚀 DOWNLOAD PDF", type="primary", use_container_width=True):
         buf = io.BytesIO()
         pdf = canvas.Canvas(buf, pagesize=A4)
-        pdf.drawString(100, 800, f"INVOICE: {my_name}")
-        pdf.drawString(100, 780, f"Kepada: {c_name}")
-        pdf.drawString(100, 760, f"Total: Rp {total_tagihan:,.0f}")
+        pdf.setFont("Helvetica-Bold", 16)
+        pdf.drawString(50, 800, f"INVOICE: {my_name}")
+        pdf.setFont("Helvetica", 12)
+        pdf.drawString(50, 780, f"Kepada: {c_name}")
+        pdf.drawString(50, 760, f"Total Bayar: Rp {total_tagihan:,.0f}")
         pdf.save()
-        st.download_button("⬇️ Simpan PDF", data=buf.getvalue(), file_name="invoice.pdf")
+        st.download_button("⬇️ Simpan PDF", data=buf.getvalue(), file_name="invoice.pdf", use_container_width=True)
