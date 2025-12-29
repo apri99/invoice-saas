@@ -8,7 +8,7 @@ from datetime import datetime
 st.set_page_config(page_title="Invoice Generator Pro", page_icon="🧾", layout="centered")
 
 st.title("🚀 Invoice Generator Pro")
-st.markdown("Invoice profesional dengan watermark keamanan otomatis.")
+st.markdown("Versi Teroptimasi: Jarak footer lebih proporsional.")
 
 # --- INPUT DATA ---
 with st.expander("👤 Data Pengirim (Bisnis Anda)", expanded=True):
@@ -49,11 +49,10 @@ def create_pdf(inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_pho
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
-    # --- 1. WATERMARK "ORIGINAL" (Diagonal Samar) ---
+    # --- 1. WATERMARK ---
     c.saveState()
     c.setFont("Helvetica-Bold", 80)
-    c.setStrokeColor(HexColor("#eeeeee")) # Sangat tipis/samar
-    c.setFillColor(HexColor("#f0f0f0"), alpha=0.3) # Transparansi 30%
+    c.setFillColor(HexColor("#f0f0f0"), alpha=0.3)
     c.translate(width/2, height/2)
     c.rotate(45)
     c.drawCentredString(0, 0, "ORIGINAL")
@@ -92,17 +91,19 @@ def create_pdf(inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_pho
     c.drawRightString(width - 50, height - 150, f"No. Invoice: #{inv_num}")
     c.drawRightString(width - 50, height - 165, f"Tgl Jatuh Tempo: {due_date}")
 
+    # --- 4. TABEL ITEM (POSISI DINAMIS) ---
     c.setStrokeColor(HexColor("#dddddd"))
-    c.line(50, height - 260, width - 50, height - 260)
+    c.line(50, height - 280, width - 50, height - 280)
 
-    # --- 4. ITEM & TOTAL ---
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, height - 285, "DESKRIPSI PEKERJAAN")
-    c.drawRightString(width - 50, height - 285, "SUBTOTAL")
+    c.drawString(50, height - 300, "DESKRIPSI PEKERJAAN")
+    c.drawRightString(width - 50, height - 300, "SUBTOTAL")
+    
     c.setFont("Helvetica", 11)
-    c.drawString(50, height - 310, item if item else "-")
-    c.drawRightString(width - 50, height - 310, f"Rp {total:,.2f}")
+    c.drawString(50, height - 325, item if item else "-")
+    c.drawRightString(width - 50, height - 325, f"Rp {total:,.2f}")
 
+    # --- 5. BOX TOTAL (DIPERTAHANKAN DI SINI) ---
     c.setFillColor(HexColor("#f4f4f4"))
     c.rect(width - 250, height - 380, 200, 45, fill=True, stroke=False)
     c.setFillColor(HexColor("#000000"))
@@ -110,27 +111,42 @@ def create_pdf(inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_pho
     c.drawString(width - 235, height - 365, "TOTAL:")
     c.drawRightString(width - 65, height - 365, f"Rp {total:,.2f}")
 
-    # --- 5. FOOTER ---
+    # --- 6. FOOTER (SEKARANG LEBIH DEKAT KE ATAS) ---
+    # Kita geser posisi Y footer dari 130 ke sekitar 420 agar tepat di bawah total
+    footer_y = height - 420 
+    
+    c.setStrokeColor(HexColor("#eeeeee"))
     c.setDash(1, 2)
-    c.line(50, 130, width - 50, 130)
+    c.line(50, footer_y, width - 50, footer_y)
+    
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(50, 115, "Catatan Pembayaran:")
+    c.drawString(50, footer_y - 20, "Catatan Pembayaran:")
+    
     c.setFont("Helvetica", 9)
-    c.drawString(50, 100, note)
-    c.drawCentredString(width/2, 30, f"Invoice diterbitkan secara otomatis oleh {s_name}")
+    # Membuat catatan bisa multi-baris
+    text_n = c.beginText(50, footer_y - 35)
+    text_n.setLeading(12)
+    for line in note.split('\n'):
+        text_n.textLine(line)
+    c.drawText(text_n)
+    
+    # Hak Cipta paling bawah tetap ada
+    c.setFont("Helvetica-Oblique", 8)
+    c.setFillColor(HexColor("#888888"))
+    c.drawCentredString(width/2, 30, f"Invoice ini diterbitkan secara otomatis oleh {s_name}")
     
     c.save()
     buffer.seek(0)
     return buffer
 
 st.markdown("---")
-if st.button("✨ CETAK INVOICE DENGAN WATERMARK", type="primary"):
+if st.button("✨ GENERATE INVOICE TEROPTIMASI", type="primary"):
     if not my_name or not client_name or not item_desc:
-        st.error("Lengkapi data yang dibutuhkan!")
+        st.error("Data belum lengkap!")
     else:
         pdf_data = create_pdf(invoice_number, my_name, my_email, my_phone, my_address, 
                               client_name, client_email, client_phone, client_address, 
                               item_desc, amount, notes)
-        st.success("Invoice dengan Watermark Berhasil Dibuat!")
+        st.success("Invoice Berhasil!")
         st.download_button(label="⬇️ Download PDF Sekarang", data=pdf_data, 
-                           file_name=f"Invoice_Original_{invoice_number}.pdf", mime="application/pdf")
+                           file_name=f"Invoice_Optimized_{invoice_number}.pdf", mime="application/pdf")
