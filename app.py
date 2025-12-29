@@ -8,9 +8,9 @@ from datetime import datetime
 st.set_page_config(page_title="Invoice Generator Pro", page_icon="🧾", layout="centered")
 
 st.title("🚀 Invoice Generator Pro")
-st.markdown("Lengkapi detail kontak pengirim dan penerima untuk invoice profesional.")
+st.markdown("Lengkapi detail kontak pengirim dan penerima agar invoice Anda terlihat profesional dan sah.")
 
-# --- BAGIAN 1: IDENTITAS PENGIRIM (ANDA) ---
+# --- INPUT DATA PENGIRIM (ANDA) ---
 with st.expander("👤 Data Pengirim (Bisnis Anda)", expanded=True):
     col_s1, col_s2 = st.columns(2)
     with col_s1:
@@ -18,11 +18,11 @@ with st.expander("👤 Data Pengirim (Bisnis Anda)", expanded=True):
         my_email = st.text_input("Email Pengirim", placeholder="kontak@bisnisanda.com")
     with col_s2:
         my_phone = st.text_input("No. Telp Pengirim", placeholder="0812xxxxxxx")
-        my_address = st.text_area("Alamat Pengirim", placeholder="Jl. Raya Utama No.1, Kota...")
+        my_address = st.text_area("Alamat Lengkap Pengirim", placeholder="Jl. Raya Utama No.1, Kota...")
 
 st.markdown("---")
 
-# --- BAGIAN 2: IDENTITAS PENERIMA (KLIEN) ---
+# --- INPUT DATA PENERIMA (KLIEN) ---
 with st.expander("🏢 Data Penerima (Klien)", expanded=True):
     col_p1, col_p2 = st.columns(2)
     with col_p1:
@@ -30,11 +30,12 @@ with st.expander("🏢 Data Penerima (Klien)", expanded=True):
         client_email = st.text_input("Email Penerima", placeholder="admin@klien.com")
     with col_p2:
         client_phone = st.text_input("No. Telp Penerima", placeholder="0857xxxxxxx")
-        client_address = st.text_area("Alamat Penerima", placeholder="Jl. Sudirman No. 123, Jakarta")
+        client_address = st.text_area("Alamat Lengkap Penerima", placeholder="Jl. Sudirman No. 123, Jakarta")
 
 st.markdown("---")
 
-# --- BAGIAN 3: DETAIL INVOICE ---
+# --- DETAIL TRANSAKSI ---
+st.subheader("Detail Tagihan")
 col_i1, col_i2 = st.columns(2)
 with col_i1:
     invoice_number = st.text_input("Nomor Invoice", value=f"INV-{datetime.now().strftime('%Y%m%d%H%M')}")
@@ -42,34 +43,32 @@ with col_i2:
     due_date = st.date_input("Tanggal Jatuh Tempo")
 
 item_desc = st.text_area("Deskripsi Pekerjaan / Produk")
-amount = st.number_input("Total Nominal (Rp)", min_value=0, step=10000)
-notes = st.text_area("Catatan/Instruksi Pembayaran", value="Transfer Bank BCA 123456789 a/n Nama Anda")
+amount = st.number_input("Total Nominal (Rp)", min_value=0, step=10000, format="%d")
+notes = st.text_area("Catatan Pembayaran", value="Transfer ke Rekening BCA 123456789 a/n Nama Anda")
 
 def create_pdf(inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_phone, p_addr, item, total, note):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
-    # Header Biru
+    # Header Biru Profesional
     c.setFillColor(HexColor("#1f538d")) 
     c.rect(0, height - 120, width, 120, fill=True, stroke=False)
     c.setFillColor(HexColor("#ffffff"))
     c.setFont("Helvetica-Bold", 30)
     c.drawString(50, height - 70, "INVOICE")
     
-    # Detail Pengirim di Header (Kanan)
+    # Detail Pengirim (Header Kanan)
     c.setFont("Helvetica-Bold", 12)
     c.drawRightString(width - 50, height - 50, s_name.upper())
     c.setFont("Helvetica", 10)
     c.drawRightString(width - 50, height - 65, f"Telp: {s_phone}")
     c.drawRightString(width - 50, height - 80, s_email)
     
-    # Informasi Invoice (Kiri Bawah Header)
+    # Informasi Penerima (Body Kiri)
     c.setFillColor(HexColor("#000000"))
     c.setFont("Helvetica-Bold", 11)
     c.drawString(50, height - 150, "DITAGIHKAN KEPADA:")
-    
-    # Detail Penerima
     c.setFont("Helvetica-Bold", 13)
     c.drawString(50, height - 170, p_name.upper())
     c.setFont("Helvetica", 10)
@@ -83,7 +82,7 @@ def create_pdf(inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_pho
         text_p.textLine(line)
     c.drawText(text_p)
 
-    # Info Nomor & Tanggal (Kanan)
+    # Info Invoice (Body Kanan)
     c.setFont("Helvetica-Bold", 10)
     c.drawRightString(width - 50, height - 150, f"No. Invoice: #{inv_num}")
     c.setFont("Helvetica", 10)
@@ -93,16 +92,15 @@ def create_pdf(inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_pho
     c.setStrokeColor(HexColor("#dddddd"))
     c.line(50, height - 260, width - 50, height - 260)
 
-    # Deskripsi Item
+    # Tabel Deskripsi
     c.setFont("Helvetica-Bold", 11)
     c.drawString(50, height - 285, "DESKRIPSI PEKERJAAN")
     c.drawRightString(width - 50, height - 285, "SUBTOTAL")
-    
     c.setFont("Helvetica", 11)
     c.drawString(50, height - 310, item)
     c.drawRightString(width - 50, height - 310, f"Rp {total:,.2f}")
 
-    # Total Box
+    # Box Total
     c.setFillColor(HexColor("#f4f4f4"))
     c.rect(width - 250, height - 380, 200, 45, fill=True, stroke=False)
     c.setFillColor(HexColor("#000000"))
@@ -126,11 +124,11 @@ def create_pdf(inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_pho
 st.markdown("---")
 if st.button("✨ CETAK INVOICE LENGKAP", type="primary"):
     if not my_name or not client_name or not item_desc:
-        st.error("Lengkapi data pengirim, penerima, dan deskripsi!")
+        st.error("Lengkapi Nama Pengirim, Penerima, dan Deskripsi Pekerjaan!")
     else:
         pdf_data = create_pdf(invoice_number, my_name, my_email, my_phone, my_address, 
                               client_name, client_email, client_phone, client_address, 
                               item_desc, amount, notes)
-        st.success("Invoice Berhasil!")
+        st.success("Invoice Berhasil Dibuat!")
         st.download_button(label="⬇️ Download PDF Sekarang", data=pdf_data, 
                            file_name=f"Invoice_{invoice_number}.pdf", mime="application/pdf")
