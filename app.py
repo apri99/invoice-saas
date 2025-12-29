@@ -27,17 +27,17 @@ with col1:
     st.subheader("💰 Detail Tagihan")
     
     total_tagihan = 0
-    # Mengambil data dari session state
-    current_list = st.session_state['daftar_barang']
+    # Mengambil data dari daftar_barang
+    items_list = st.session_state['daftar_barang']
     
-    for i in range(len(current_list)):
+    for i in range(len(items_list)):
         with st.container(border=True):
             ca, cb, cc, cd = st.columns([3, 1.5, 1, 0.5])
             
             # Input data
-            n = ca.text_input(f"Item {i+1}", value=current_list[i]['nama'], key=f"nm_{i}")
-            h = cb.number_input(f"Harga", value=int(current_list[i]['harga']), step=1000, key=f"hr_{i}")
-            q = cc.number_input(f"Qty", value=int(current_list[i]['qty']), min_value=1, key=f"qt_{i}")
+            n = ca.text_input(f"Item {i+1}", value=items_list[i]['nama'], key=f"nm_{i}")
+            h = cb.number_input(f"Harga", value=int(items_list[i]['harga']), step=1000, key=f"hr_{i}")
+            q = cc.number_input(f"Qty", value=int(items_list[i]['qty']), min_value=1, key=f"qt_{i}")
             
             # Simpan balik ke state
             st.session_state['daftar_barang'][i] = {"nama": n, "harga": h, "qty": q}
