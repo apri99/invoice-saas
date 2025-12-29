@@ -8,9 +8,9 @@ from datetime import datetime
 st.set_page_config(page_title="Invoice Generator Pro", page_icon="🧾", layout="centered")
 
 st.title("🚀 Invoice Generator Pro")
-st.markdown("Lengkapi detail kontak pengirim dan penerima agar invoice Anda terlihat profesional dan sah.")
+st.markdown("Invoice profesional dengan watermark keamanan otomatis.")
 
-# --- INPUT DATA PENGIRIM (ANDA) ---
+# --- INPUT DATA ---
 with st.expander("👤 Data Pengirim (Bisnis Anda)", expanded=True):
     col_s1, col_s2 = st.columns(2)
     with col_s1:
@@ -22,7 +22,6 @@ with st.expander("👤 Data Pengirim (Bisnis Anda)", expanded=True):
 
 st.markdown("---")
 
-# --- INPUT DATA PENERIMA (KLIEN) ---
 with st.expander("🏢 Data Penerima (Klien)", expanded=True):
     col_p1, col_p2 = st.columns(2)
     with col_p1:
@@ -34,7 +33,6 @@ with st.expander("🏢 Data Penerima (Klien)", expanded=True):
 
 st.markdown("---")
 
-# --- DETAIL TRANSAKSI ---
 st.subheader("Detail Tagihan")
 col_i1, col_i2 = st.columns(2)
 with col_i1:
@@ -51,30 +49,38 @@ def create_pdf(inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_pho
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
-    # Header Biru Profesional
+    # --- 1. WATERMARK "ORIGINAL" (Diagonal Samar) ---
+    c.saveState()
+    c.setFont("Helvetica-Bold", 80)
+    c.setStrokeColor(HexColor("#eeeeee")) # Sangat tipis/samar
+    c.setFillColor(HexColor("#f0f0f0"), alpha=0.3) # Transparansi 30%
+    c.translate(width/2, height/2)
+    c.rotate(45)
+    c.drawCentredString(0, 0, "ORIGINAL")
+    c.restoreState()
+    
+    # --- 2. HEADER ---
     c.setFillColor(HexColor("#1f538d")) 
     c.rect(0, height - 120, width, 120, fill=True, stroke=False)
     c.setFillColor(HexColor("#ffffff"))
     c.setFont("Helvetica-Bold", 30)
     c.drawString(50, height - 70, "INVOICE")
     
-    # Detail Pengirim (Header Kanan)
     c.setFont("Helvetica-Bold", 12)
-    c.drawRightString(width - 50, height - 50, s_name.upper())
+    c.drawRightString(width - 50, height - 50, s_name.upper() if s_name else "BRAND ANDA")
     c.setFont("Helvetica", 10)
     c.drawRightString(width - 50, height - 65, f"Telp: {s_phone}")
     c.drawRightString(width - 50, height - 80, s_email)
     
-    # Informasi Penerima (Body Kiri)
+    # --- 3. DETAIL PENERIMA ---
     c.setFillColor(HexColor("#000000"))
     c.setFont("Helvetica-Bold", 11)
     c.drawString(50, height - 150, "DITAGIHKAN KEPADA:")
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(50, height - 170, p_name.upper())
+    c.drawString(50, height - 170, p_name.upper() if p_name else "NAMA PENERIMA")
     c.setFont("Helvetica", 10)
     c.drawString(50, height - 185, f"Email: {p_email} | Telp: {p_phone}")
     
-    # Alamat Penerima (Multi-line)
     text_p = c.beginText(50, height - 200)
     text_p.setFont("Helvetica", 9)
     text_p.setLeading(11)
@@ -82,25 +88,21 @@ def create_pdf(inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_pho
         text_p.textLine(line)
     c.drawText(text_p)
 
-    # Info Invoice (Body Kanan)
     c.setFont("Helvetica-Bold", 10)
     c.drawRightString(width - 50, height - 150, f"No. Invoice: #{inv_num}")
-    c.setFont("Helvetica", 10)
     c.drawRightString(width - 50, height - 165, f"Tgl Jatuh Tempo: {due_date}")
 
-    # Garis Pembatas
     c.setStrokeColor(HexColor("#dddddd"))
     c.line(50, height - 260, width - 50, height - 260)
 
-    # Tabel Deskripsi
+    # --- 4. ITEM & TOTAL ---
     c.setFont("Helvetica-Bold", 11)
     c.drawString(50, height - 285, "DESKRIPSI PEKERJAAN")
     c.drawRightString(width - 50, height - 285, "SUBTOTAL")
     c.setFont("Helvetica", 11)
-    c.drawString(50, height - 310, item)
+    c.drawString(50, height - 310, item if item else "-")
     c.drawRightString(width - 50, height - 310, f"Rp {total:,.2f}")
 
-    # Box Total
     c.setFillColor(HexColor("#f4f4f4"))
     c.rect(width - 250, height - 380, 200, 45, fill=True, stroke=False)
     c.setFillColor(HexColor("#000000"))
@@ -108,27 +110,27 @@ def create_pdf(inv_num, s_name, s_email, s_phone, s_addr, p_name, p_email, p_pho
     c.drawString(width - 235, height - 365, "TOTAL:")
     c.drawRightString(width - 65, height - 365, f"Rp {total:,.2f}")
 
-    # Footer
+    # --- 5. FOOTER ---
     c.setDash(1, 2)
     c.line(50, 130, width - 50, 130)
     c.setFont("Helvetica-Bold", 10)
     c.drawString(50, 115, "Catatan Pembayaran:")
     c.setFont("Helvetica", 9)
     c.drawString(50, 100, note)
-    c.drawCentredString(width/2, 30, f"Invoice diterbitkan oleh {s_name}")
+    c.drawCentredString(width/2, 30, f"Invoice diterbitkan secara otomatis oleh {s_name}")
     
     c.save()
     buffer.seek(0)
     return buffer
 
 st.markdown("---")
-if st.button("✨ CETAK INVOICE LENGKAP", type="primary"):
+if st.button("✨ CETAK INVOICE DENGAN WATERMARK", type="primary"):
     if not my_name or not client_name or not item_desc:
-        st.error("Lengkapi Nama Pengirim, Penerima, dan Deskripsi Pekerjaan!")
+        st.error("Lengkapi data yang dibutuhkan!")
     else:
         pdf_data = create_pdf(invoice_number, my_name, my_email, my_phone, my_address, 
                               client_name, client_email, client_phone, client_address, 
                               item_desc, amount, notes)
-        st.success("Invoice Berhasil Dibuat!")
+        st.success("Invoice dengan Watermark Berhasil Dibuat!")
         st.download_button(label="⬇️ Download PDF Sekarang", data=pdf_data, 
-                           file_name=f"Invoice_{invoice_number}.pdf", mime="application/pdf")
+                           file_name=f"Invoice_Original_{invoice_number}.pdf", mime="application/pdf")
