@@ -41,7 +41,7 @@ with st.sidebar:
     sym = curr_opt[selected_curr]
     
     st.divider()
-    # FITUR BARU: Nomor Invoice Otomatis (Format: INV-YYYYMMDD-01)
+    # FITUR NOMOR INVOICE OTOMATIS
     default_no = datetime.now().strftime("INV-%Y%m%d-01")
     invoice_no = st.text_input(L["inv_no"], value=default_no)
     
@@ -59,20 +59,20 @@ col_in, col_pre = st.columns([1.5, 1])
 
 with col_in:
     st.subheader(f"📩 {L['client']}")
-    c_name = st.text_input("Client Name")
-    c_addr = st.text_area("Client Address")
+    c_name = st.text_input("Client Name / Nama Klien")
+    c_addr = st.text_area("Client Address / Alamat Klien")
     
     st.subheader(f"💰 {L['items']}")
     subtotal = 0.0
     for i in range(len(st.session_state['invoice_items_v6'])):
         with st.container(border=True):
             r1, r2, r3, r4 = st.columns([3, 1, 2, 0.5])
-            d = r1.text_input(f"{L['desc']} {i+1}", value=st.session_state['invoice_items_v6'][i]['desc'], key=f"d_v95_{i}")
-            q = r2.number_input("Qty", min_value=1, value=st.session_state['invoice_items_v6'][i]['qty'], key=f"q_v95_{i}")
-            p = r3.number_input(f"{L['price']} ({sym})", min_value=0.0, format="%.2f", key=f"p_v95_{i}")
+            d = r1.text_input(f"{L['desc']} {i+1}", value=st.session_state['invoice_items_v6'][i]['desc'], key=f"d_v95_f_{i}")
+            q = r2.number_input("Qty", min_value=1, value=st.session_state['invoice_items_v6'][i]['qty'], key=f"q_v95_f_{i}")
+            p = r3.number_input(f"{L['price']} ({sym})", min_value=0.0, format="%.2f", key=f"p_v95_f_{i}")
             st.session_state['invoice_items_v6'][i] = {"desc": d, "qty": q, "price": p}
             subtotal += (q * p)
-            if r4.button("🗑️", key=f"del_v95_{i}"):
+            if r4.button("🗑️", key=f"del_v95_f_{i}"):
                 st.session_state['invoice_items_v6'].pop(i); st.rerun()
 
     if st.button("➕ Add Item"):
@@ -98,11 +98,9 @@ with col_pre:
         can.drawRightString(w-1*cm, h-65, f"{L['date']}: {inv_date.strftime('%d/%m/%Y')}")
         can.drawRightString(w-1*cm, h-80, f"{L['due']}: {due_date.strftime('%d/%m/%Y')}")
         
-        # Penerima
         can.setFillColor(colors.black); can.setFont("Helvetica-Bold", 11); can.drawString(1*cm, h-130, L["bill_to"] + ":")
         can.setFont("Helvetica", 11); can.drawString(1*cm, h-145, c_name)
         
-        # Table
         data = [[L["desc"], "Qty", L["price"], L["total"]]]
         for it in st.session_state['invoice_items_v6']:
             data.append([it['desc'], it['qty'], f"{it['price']:,.2f}", f"{it['qty']*it['price']:,.2f}"])
@@ -112,7 +110,6 @@ with col_pre:
         t.wrapOn(can, w, h); y_p = h-280 - (len(data)*0.8*cm); t.drawOn(can, 1*cm, y_p)
         
         y_p -= 40; can.setFont("Helvetica-Bold", 14); can.drawRightString(w-1*cm, y_p, f"{L['grand']}: {sym} {grand_total:,.2f}")
-        
         y_si = y_p - 80; can.setFont("Helvetica", 10); can.drawString(w-7*cm, y_si, f"{L['sign']}:")
         can.setFont("Helvetica-Bold", 11); can.drawString(w-7*cm, y_si-50, biz_sign)
         can.save()
